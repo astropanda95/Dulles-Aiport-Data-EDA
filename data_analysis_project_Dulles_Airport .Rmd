@@ -1,0 +1,428 @@
+---
+title: "Data Analysis Project"
+output: pdf_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      message = FALSE, 
+                      warning = FALSE,
+                      comment = "")
+```
+
+
+
+## Dulles Flights Data
+
+The `flights_df` data frame is loaded below and consists of 33,433 flights from IAD (Dulles International) in 2016. The rows in this data frame represent a single flight with all of the associated features that are displayed in the table below.
+
+
+
+
+```{r}
+
+library(tidyverse)
+
+flights_df <- readRDS(url('https://gmubusinessanalytics.netlify.app/data/dulles_flights.rds'))
+
+```
+
+
+### Raw Data
+
+```{r}
+
+flights_df
+
+```
+
+
+# Exploratory Data Analysis
+
+
+Executives at this company have hired you as a data science consultant to evaluate their flight data and make 
+
+
+## Question 1
+
+
+Is there a arrival delay trend over the months
+
+**Answer**:
+
+June, July and December have much more number of delays over rest of the months.
+
+To add additional R code chunks for your work, select `Insert` then `R` from the top of this notebook file.
+
+```{r}
+
+#Categorising all flights arrived after 15 mintes as delayed
+flights_df$flight_delayed<- ifelse(flights_df$arrival_delay>=15,1,0)
+
+#Checking if the data is correctly transformed in new column
+flights_df%>%select (arrival_delay,flight_delayed)
+
+#Checking for outliers in arrival_delay
+ggplot(flights_df,aes(x=month,y=arrival_delay))+
+  geom_boxplot()+
+  labs(title="Arrival Delay (Mins) Vs Month Boxplot",x="Month",
+       y="Arrival Delay(Mins)")
+
+
+#Removing the outliers from and above 99th percentile (Check to aid with
+# upcoming analysis and graphs)
+
+flights_df%>%
+  filter(arrival_delay<quantile(flights_df$arrival_delay,probs = .99))%>%
+  ggplot(.,aes(x=month,y=arrival_delay))+
+  geom_boxplot()+
+  labs(title="Arrival Delay (Mins) Vs Month Boxplot",x="Month",
+       y="Arrival Delay(Mins)")
+
+
+```
+
+
+
+## Question 2
+
+
+Which airline has the most delay in percentage?
+
+**Answer**:
+
+Frontier airlines has the most delays.
+
+
+```{r}
+
+#Plot
+flights_df%>%
+  filter(arrival_delay<quantile(flights_df$arrival_delay,probs = .99))%>%
+  group_by(airline)%>%
+  summarize(n=n(),total_delays=sum(flight_delayed),
+            delay_percentage=(total_delays/n)*100)%>%
+  ggplot(.,aes(x=airline,y=delay_percentage))+geom_col()+
+  labs(title="Airlines Vs Percentage of delays 2016",x="Airlines",y="Flight
+       Delay %")
+
+#Summary table for numbers
+flights_df%>%
+  filter(arrival_delay<quantile(flights_df$arrival_delay,probs = .99))%>%
+  group_by(airline)%>%
+  summarize(n=n(),total_delays=sum(flight_delayed),
+            delay_percentage=(total_delays/n)*100)%>%
+  arrange(desc(delay_percentage))
+
+
+```
+
+
+
+## Question 3
+
+
+Which months has most flight delay by percentage?
+
+**Answer**:
+
+The month of December has the most delays by percentage.
+
+
+```{r}
+
+#Plot
+flights_df%>%
+  filter(arrival_delay<quantile(flights_df$arrival_delay,probs = .99))%>%
+  group_by(month)%>%
+  summarize(n=n(),total_delays=sum(flight_delayed),
+            delay_percentage=(total_delays/n)*100)%>%
+  ggplot(.,aes(x=month,y=delay_percentage,group=1))+geom_line()+geom_point()+
+  labs(title="Month Vs Percentage of delays 2016",x="Month",y="Flight
+       Delay %")
+
+#Summary table for numbers
+flights_df%>%
+  filter(arrival_delay<quantile(flights_df$arrival_delay,probs = .99))%>%
+  group_by(month)%>%
+  summarize(n=n(),total_delays=sum(flight_delayed),
+            delay_percentage=(total_delays/n)*100)%>%
+  arrange(desc(delay_percentage))
+
+
+```
+
+
+
+
+## Question 4
+
+Which destination was visited the most during holiday season(December)? 
+
+**Answer**:
+
+San Francisco was the most visited during the holiday season i.e., on December. 
+
+
+```{r}
+
+#Top 10 places
+flights_df%>%
+  filter(month=="December",
+         arrival_delay<quantile(flights_df$arrival_delay,probs = .99))%>%
+  group_by(dest_airport_city)%>%
+  summarize(n=n(),total_delays=sum(flight_delayed),
+            delay_percentage=(total_delays/n)*100,
+            avg_taxi_out=mean(taxi_out))%>%
+  arrange(desc(n))%>%
+  head(10)
+
+#Flights taken to San Francisco in December
+flights_df%>%
+  filter(month=="December",dest_airport_city=="San Francisco",
+         arrival_delay<quantile(flights_df$arrival_delay,probs = .99))%>%
+  group_by(airline)%>%
+  summarize(n=n(),total_delays=sum(flight_delayed),
+            delay_percentage=(total_delays/n)*100,
+            avg_taxi_out=mean(taxi_out))%>%
+  arrange(desc(n))%>%
+  head(10)
+
+
+#Plot 
+flights_df%>%
+  filter(month=="December",
+         arrival_delay<quantile(flights_df$arrival_delay,probs = .99))%>%
+  group_by(dest_airport_city)%>%
+  summarize(n=n(),total_delays=sum(flight_delayed),
+            delay_percentage=(total_delays/n)*100,avg_taxi_out=mean(taxi_out))%>%
+  arrange(desc(n))%>%
+  head(10)%>%
+  ggplot(.,aes(x=dest_airport_city,y=n))+
+  geom_col()+
+  labs(x="Destination City",y="No. of flights",
+       title="Number of flights per city in December 2016")+
+  theme(axis.text.x = element_text(angle = 30,vjust = 0.5, hjust=0.5))
+
+
+```
+
+
+
+
+## Question 5
+
+With the increase in number of flights is there an increase in late arrival?
+
+**Answer**:
+
+Yes, the scatter plot shows that there is a correlation i.e., if there as the
+number of flights scheduled increases, then we can also expect an increase in
+number of flights getting delayed.
+
+
+```{r}
+
+#Plot
+flights_df%>%
+  group_by(dest_airport_city,month)%>%
+  summarise(n=n(),total_delays=sum(flight_delayed),
+            delay_percentage=(total_delays/n)*100)%>%
+  ggplot(.,aes(x=n,y=total_delays))+
+  geom_point()+
+  labs(x="No. of flights",y="No. of flights delayed",
+       title="No. of flight Vs No. of flights delayed Scatter Plot")
+  
+#Checking the same distribution as above for December since it has the most
+#delays percentage
+
+flights_df%>%
+  filter(month=="December")%>%
+  group_by(scheduled_flight_date)%>%
+  summarise(n=n(),total_delays=sum(flight_delayed),
+            delay_percentage=(total_delays/n)*100)%>%
+  ggplot(.,aes(x=n,y=total_delays))+
+  geom_point()+
+  labs(x="No. of flights",y="No. of flights delayed",
+       title="No. of flight Vs No. of flights delayed Scatter Plot(December)")
+
+
+```
+
+
+## Question 6
+
+Which destination has the most delay as percentage?
+
+**Answer**:
+
+St. Louis	technically has the most delay, but this can be discounted since
+there was only 1 flight in the enitre of 2016. Otherwise, making Portland the
+city with the most delay w.r.t percentage.
+
+
+```{r}
+
+#Summary to get the numbers
+flights_df%>%
+  group_by(dest_airport_city)%>%
+  summarize(n=n(),total_delays=sum(flight_delayed),
+            delay_percentage=(total_delays/n)*100)%>%
+  arrange(desc(delay_percentage),desc(n))
+
+
+#Plot for top 15 destinations
+flights_df%>%
+  group_by(dest_airport_city)%>%
+  summarize(n=n(),total_delays=sum(flight_delayed),
+            delay_percentage=(total_delays/n)*100)%>%
+  arrange(desc(delay_percentage))%>%
+  head(15)%>%
+  ggplot(.,aes(x=reorder(dest_airport_city,-delay_percentage),
+               y=delay_percentage))+
+  geom_col()+
+  labs(title="Top 15 destinations with highest delay percentage",
+       x="Percentage delay",y="Destination")+
+  theme(axis.text.x = element_text(angle = 30,vjust = 0.5, hjust=0.5))
+
+
+```
+
+
+## Question 7
+
+Is there any correlation between taxi_out and delays?
+
+**Answer**:
+
+We don't see any strong correlation between these two. However we noticed a 
+trend/anomaly around the time of 10 - 15 minutes taken for flight to go from
+gate to runway, we had the most number of delays
+
+
+```{r}
+
+#Plot to get taxi_out time vs arrival_delay time
+ggplot(flights_df,aes(x=taxi_out,y=arrival_delay))+
+  geom_point(alpha=0.1)+
+  labs(title = "Plot to check if gate to runway time is causing arrival delay",
+       x="Gate to runway time(Minutes)",y="Arrival delay(Minutes)")
+
+#Plot to check the frequncy of flight delays w.r.t taxi out time
+flights_df%>%
+  #filter(arrival_delay<quantile(flights_df$arrival_delay,probs = .99))%>%
+  group_by(taxi_out)%>%
+  summarize(total_delays=sum(flight_delayed))%>%
+  ggplot(.,aes(x=taxi_out,y=total_delays))+
+  geom_point(alpha=0.6)+geom_line()+
+  scale_x_continuous(breaks = scales::breaks_width(20))+
+  labs(title="Plot to check the frequency of delays w.r.t taxi out time",
+       x="Gate to runway time(Minutes)",y="No.of delayed flights")
+  #arrange(desc(total_delays))
+
+
+#Summary table to get the numbers
+flights_df%>%
+  #filter(arrival_delay<quantile(flights_df$arrival_delay,probs = .99))%>%
+  group_by(taxi_out)%>%
+  summarize(total_delays=sum(flight_delayed))%>%
+  mutate(percentage_delay=round(total_delays/sum(total_delays)*100,3))%>%
+  arrange(desc(total_delays))
+
+
+```
+
+
+
+## Question 8
+
+Is there any particular day of the week which generally sees more delays in
+percentage?
+
+**Answer**:
+
+Thursday has the most delay percentage.
+
+
+
+```{r}
+
+#Checking the overall numbers for the days of the week
+flights_df%>%
+  group_by(weekday)%>%
+  summarize(n=n(),traffic_percent=n/length(flights_df$weekday)*100,total_delays=sum(flight_delayed),
+            delay_percentage=(total_delays/n)*100)%>%
+  arrange(desc(n))
+
+#Checking the numbers for Friday in a month-wise tally
+flights_df%>%
+  filter(weekday=="Friday")%>%
+  group_by(month)%>%
+  summarize(n=n(),total_delays=sum(flight_delayed),
+            delay_percentage=(total_delays/n)*100)%>%
+  arrange(desc(n))
+
+#Checking the numbers for Thursday in a month-wise tally
+flights_df%>%
+  filter(weekday=="Thursday")%>%
+  group_by(month)%>%
+  summarize(n=n(),total_delays=sum(flight_delayed),
+            delay_percentage=(total_delays/n)*100)%>%
+  arrange(desc(n))
+
+
+```
+
+
+# Summary of Results
+
+
+
+Introduction
+
+To sustain operations, profitability, customer satisfaction with state and federal legislation, airport need to rely on accurate flight arrival and departure estimations. To sustain airport operations, flight performance, including departure and arrival delays should be thoroughly monitored. The FAA officially considers a flight to be delayed if the flight arrives at least 15 minutes late.
+
+The goal of this analysis is to understand the key performance indictors leading to delay of flights. Some of the questions this analysis tries to answer are as follows:
+
+•	Is there a seasonal trend where number of flight delay increases? 
+•	Any airline which is causing a majority of the delay
+•	Is the increase in number of flights proportionally increasing the number of flights being delayed?
+•	Is there any destination which is having high influx of flights, causing any delay?
+
+Answering these questions will help us creating roadmap to alleviate potential flight delays.
+
+Exploratory data analysis
+
+Some of the key highlights found when exploring and analyzing the data are as follows:
+
+•	Majority of the flight delays are recorded in the month of December (23%). This turns out to be the time when schools and offices have winter break, due to which we can notice an increase in the number of flights being booked in these months.
+•	In December, majority of the delays came from flights to San Francisco as destination. 43% of the flights with San Francisco as destination got delayed.
+•	A trend was noticed in which, with the increase in the number of flights taking off, there was a proportional increase in the number of flights getting delayed.
+•	Frontier airlines has the highest delay percentage at 25%.
+
+Recommendations
+
+•	Making slots for airlines:
+In the analysis we have noticed that with the increase in the number of flights, we can observe a proportional increase in the flight delays. I.e., in case a flight gets delayed due to any reason, then the flight which is scheduled to take off after this flight also gets delayed. Hence, causing a ripple effect. 
+
+This can be handled by setting up time slots within which flight need to take off. If missed, they must be put on hold and let the next flight go ahead with the take-off. Although this may cause the first flight to get further delayed, it will however make sure that the schedule of other flights will not get affected.
+
+•	Demand based gate allocation:
+As we have noticed that flight demand increases substantially during specific months (June, July, and December) due to holidays. It’s best to have a priority-based gate allocation system setup to alleviate any potential bottlenecking of gates and runway availability. For example, in the month of December we noticed that there’s a greater demand for flights to San Francisco. 
+
+Hence, in such cases it’s better to have gates which would require lesser distance for the passengers to travel. This on a holistic level will ameliorate passenger experience and reduce chances of delay due to passengers as well.
+
+•	Points based penalty program:
+We have observed that certain flights have more percentages of delayed flights. A point system can be created where on each strike for delay a certain penalty be imposed on the airline. Conditions can set such as no penalty for weather-based delay, etc. And impose heavier penalty if the delay is fault of the airlines and such delays have been happening consistently. 
+
+
+
+
+
+
+
+
+
+
+
