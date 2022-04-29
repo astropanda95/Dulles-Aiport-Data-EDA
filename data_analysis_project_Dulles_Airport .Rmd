@@ -41,9 +41,6 @@ flights_df
 # Exploratory Data Analysis
 
 
-Executives at this company have hired you as a data science consultant to evaluate their flight data and make 
-
-
 ## Question 1
 
 
@@ -377,11 +374,7 @@ flights_df%>%
 
 # Summary of Results
 
-
-
-Introduction
-
-To sustain operations, profitability, customer satisfaction with state and federal legislation, airport need to rely on accurate flight arrival and departure estimations. To sustain airport operations, flight performance, including departure and arrival delays should be thoroughly monitored. The FAA officially considers a flight to be delayed if the flight arrives at least 15 minutes late.
+The FAA officially considers a flight to be delayed if the flight arrives at least 15 minutes late.
 
 The goal of this analysis is to understand the key performance indictors leading to delay of flights. Some of the questions this analysis tries to answer are as follows:
 
@@ -392,7 +385,7 @@ The goal of this analysis is to understand the key performance indictors leading
 
 Answering these questions will help us creating roadmap to alleviate potential flight delays.
 
-Exploratory data analysis
+**Exploratory data analysis**
 
 Some of the key highlights found when exploring and analyzing the data are as follows:
 
